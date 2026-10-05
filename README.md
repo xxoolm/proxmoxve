@@ -1,37 +1,33 @@
 # Proxmox VE Custom Integration for Home Assistant
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/5b5a8c5b-885b-4233-a858-2e78b97d8c74">
-  <img src="https://github.com/dougiteixeira/proxmoxve/assets/31328123/dfec7426-852d-41ea-b6c1-9bfd8cd1e8a8">
-</picture>
 
+![Proxmox VE Custom Integration](https://github.com/dougiteixeira/proxmoxve/assets/31328123/dfec7426-852d-41ea-b6c1-9bfd8cd1e8a8)
 
-[Proxmox VE](https://www.proxmox.com/en/) is an open-source server virtualization environment. This integration allows you to poll various data and controls from your instance.
+[Proxmox VE](https://www.proxmox.com/en/) is an open-source server virtualization environment. This integration reads its state into Home Assistant and lets you act on it — for a single node as much as for a cluster.
 
-This integration started as improvements to the [Home Assistant core's Proxmox VE integration](https://www.home-assistant.io/integrations/proxmoxve/), but I'm new to programming and couldn't meet all of the core's code requirements. So I decided to keep it as a custom integration. Therefore, when installing this, the core integration will be replaced.
+It began as [@dougiteixeira](https://github.com/dougiteixeira)'s custom integration, built on the [Home Assistant core integration](https://www.home-assistant.io/integrations/proxmoxve/) and grown well beyond it; it replaces the core one when installed ([what differs](https://github.com/dougiteixeira/proxmoxve/blob/main/docs/compared-to-core.md)). Everything goes through the Proxmox API with the credentials you give it — nothing is installed on the nodes, except [PVE-mods](https://github.com/dougiteixeira/proxmoxve/blob/main/docs/hardware-sensors.md) if you want hardware temperatures.
 
-After configuring this integration, the following information is available:
+## What you get
 
- - Binary sensor entities with the status of node and selected virtual machines/containers.
- - Sensor entities of the selected node and virtual machines/containers. Some sensors are created disabled by default, you can enable them by accessing the entity's configuration.
- - **Failed task monitoring sensors** that track failed tasks from the last 24 hours on selected nodes, showing the count of failures and details about recent failed tasks.
- - Entities button to control selected virtual machines/containers (see about Proxmox user permissions below). By default, the entities buttons to control virtual machines/containers are created disabled, [see how to enable them here](https://github.com/dougiteixeira/proxmoxve/#disabled-entities).
+- **Cluster** — nodes online, guests running, CPU and memory across the cluster; HA status, backup coverage and Ceph health with the optional cluster credentials; shared storage as one device.
+- **Nodes** — status, CPU, memory, swap, disk, IO delay, load average, version; package updates as a Home Assistant update entity; last backup and failed tasks; replication, subscription and certificate expiry; hardware temperatures, fans and voltages via PVE-mods; physical disks with SMART; ZFS pools.
+- **Virtual machines and containers** — status with QEMU's finer run states, CPU (own and as a share of the host), memory, disk from the guest agent, network, uptime, a file read from inside the guest.
+- **Storage** — capacity and the active/enabled/shared flags, per node for local storage and once for shared.
+- **Actions** — start, stop, shutdown, reboot, suspend, resume, hibernate, reset, unlock, snapshot and backup buttons; bulk start/stop/suspend/backup per node; Wake on LAN; arm/disarm HA; and a `proxmoxve.backup` action with all of vzdump's options.
+- **Behaviour** — optional automatic discovery of everything the credentials can see, failover to another cluster node when the configured one goes down, no re-authentication after a node was off overnight, repairs that name the missing privilege, and buttons only where the privilege exists.
 
-### Failed Task Monitoring
+Many entities are created **disabled by default** — the buttons that change things, and sensors most setups never need — and are enabled per entity, see [Disabled entities](https://github.com/dougiteixeira/proxmoxve/blob/main/docs/behaviour.md#disabled-entities).
 
-The integration provides sensors that monitor failed tasks on your Proxmox nodes over the last 24 hours. These sensors offer:
+## Documentation
 
-- **Failed Task Count**: Shows the number of failed tasks per node
-- **Recent Failure Details**: Displays information about recent failed tasks including:
-  - Task type (backup, migration, etc.)
-  - Start and end timestamps (in your local timezone)
-  - Task status
-- **Configurable**: Can be enabled or disabled during integration setup or via integration options
-- **Automatic Updates**: Refreshes every 5 minutes to provide up-to-date information
-
-The failed task sensors help you monitor the health of your Proxmox operations and quickly identify when automated tasks encounter issues.
-
-> [!IMPORTANT]  
-> See the section on Proxmox user permissions [here](https://github.com/dougiteixeira/proxmoxve#proxmox-permissions).
+- [Entities](https://github.com/dougiteixeira/proxmoxve/blob/main/docs/entities.md) — every sensor, by cluster, node, guest and storage
+- [Actions](https://github.com/dougiteixeira/proxmoxve/blob/main/docs/actions.md) — buttons and the `proxmoxve.backup` action
+- [Hardware sensors and physical disks](https://github.com/dougiteixeira/proxmoxve/blob/main/docs/hardware-sensors.md) — PVE-mods, SMART, when readings come and go
+- [Proxmox permissions](https://github.com/dougiteixeira/proxmoxve/blob/main/docs/permissions.md) — roles, group, user and token, step by step
+- [How it behaves](https://github.com/dougiteixeira/proxmoxve/blob/main/docs/behaviour.md) — discovery, failover, nodes that are off, disabled entities, what I cannot test
+- [Troubleshooting](https://github.com/dougiteixeira/proxmoxve/blob/main/docs/troubleshooting.md) — debug logging, diagnostics, screenshots
+- [Compared with the core integration](https://github.com/dougiteixeira/proxmoxve/blob/main/docs/compared-to-core.md) — what the extra install gets you, feature by feature
+- [Blueprints](https://github.com/dougiteixeira/proxmoxve/blob/main/blueprints/readme.md) — a scheduled backup as a ready-made automation
+- [Contributing](https://github.com/dougiteixeira/proxmoxve/blob/main/CONTRIBUTING.md)
 
 ## Install
 
@@ -43,17 +39,15 @@ Have [HACS](https://hacs.xyz/) installed, this will allow you to update easily.
 
 [![image](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=dougiteixeira&repository=proxmoxve&category=integration)
 
-> [!NOTE]
-> If the button above doesn't work, add `https://github.com/dougiteixeira/proxmoxve` as a custom repository of type Integration in HACS.
+If the button above doesn't work, add `https://github.com/dougiteixeira/proxmoxve` as a custom repository of type Integration in HACS.
 
 * Click Install on the `Proxmox VE` integration.
 * Restart the Home Assistant.
 
-<details><summary>Manual installation</summary>
- 
-* Copy `proxmoxve`  folder from [latest release](https://github.com/dougiteixeira/proxmoxve/releases/latest) to [`custom_components` folder](https://developers.home-assistant.io/docs/creating_integration_file_structure/#where-home-assistant-looks-for-integrations) in your config directory.
+**Manual installation**
+
+* Copy the `proxmoxve` folder from [latest release](https://github.com/dougiteixeira/proxmoxve/releases/latest) to [`custom_components` folder](https://developers.home-assistant.io/docs/creating_integration_file_structure/#where-home-assistant-looks-for-integrations) in your config directory.
 * Restart the Home Assistant.
-</details>
 
 ## Configuration
 
@@ -61,191 +55,36 @@ Adding Proxmox VE to your Home Assistant instance can be done via the UI using t
 
 [![image](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start?domain=proxmoxve)
 
-> [!TIP]
-> It is recommended to use token-based authentication for greater integration stability.
-> 
-> In your Home Assistant configuration, enter the value defined in `Token ID` in the `Token name` field and enter the secret token value in the password field.
+**Tip:** It is recommended to use token-based authentication for greater integration stability.
 
-> [!NOTE]
-> To use user-based authentication only, you must leave the `Token name` field empty in the configuration flow.
+In your Home Assistant configuration, enter the token's **name** — the part after the `!` in what Proxmox shows as `Token ID`, e.g. `homeassistant` from `homeassistant@pve!homeassistant` — in the `Token name` field, and the secret token value in the password field. Pasting the full `user@realm!name` works too; the user and realm are taken from their own fields.
 
-> [!IMPORTANT]
-> It is important to correctly define the user's realm (`pam`, `pve` or other).
->
-> You can check this in Proxmox under Datacenter > Permissions > Users > Realm column
+**Note:** To use user-based authentication only, you must leave the `Token name` field empty in the configuration flow.
 
-<details><summary>Manual Configuration</summary>
+**Important:** It is important to correctly define the user's realm. The field offers `pam` (Linux users) and `pve` (users created in Proxmox) as a pick-list; for an LDAP, Active Directory or OpenID realm, type its name into the same field.
 
-If the button above doesn't work, you can also perform the following steps manually:
+You can check this in Proxmox under Datacenter > Permissions > Users > Realm column
 
-* Navigate to your Home Assistant instance.
-* In the sidebar, click Settings.
-* From the Setup menu, select: Devices & Services.
-* In the lower right corner, click the Add integration button.
-* In the list, search and select `Proxmox VE`.
-* Follow the on-screen instructions to complete the setup.
-</details>
- 
-## Debugging
+If the button doesn't work, add it by hand: Settings → Devices & Services → Add integration → search for `Proxmox VE` and follow the on-screen instructions.
 
-To enable debug logging for a specific integration, follow these steps:
+### Options
 
-* Go to Settings > Devices & services.
-* Select the integration card to open the detail page of the integration for which you want to enable debug logging.
-* On the left side of the integration detail page, select Enable Debug Logging.
+Everything beyond the credentials lives in the integration options (Settings → Devices & services → Proxmox VE → Configure), split into the selection and an **Advanced configuration** page:
 
-<details><summary>If you prefer, you can configure debugging through the `configuration.yaml` file</summary>
+- **Add or remove nodes, VMs, containers or storages** — what is tracked. Shared storage is listed once, marked *(shared)*.
+- **Monitor physical disks** — the per-disk devices with SMART, temperature and wearout. Reading SMART wakes sleeping disks, which is why it can be switched off.
+- **Polling interval** — 30, 45, 60, 90 or 120 seconds for nodes, guests, storage and backups; certificates, subscriptions and Ceph stay hourly, failed tasks at five minutes.
+- **Monitor package updates** — the [update entity](https://github.com/dougiteixeira/proxmoxve/blob/main/docs/entities.md#package-updates); off means no `Sys.Modify` needed.
+- **Monitor failed tasks** — the [failed task sensors](https://github.com/dougiteixeira/proxmoxve/blob/main/docs/entities.md#failed-task-monitoring).
+- **Track everything automatically** — [discovery](https://github.com/dougiteixeira/proxmoxve/blob/main/docs/behaviour.md#tracking-everything-automatically): follow the cluster instead of a fixed selection.
+- **Guest file path to monitor** — the [guest file content sensor](https://github.com/dougiteixeira/proxmoxve/blob/main/docs/entities.md#guest-file-content-sensor).
+- **Backup storage for the backup buttons** — the [backup buttons](https://github.com/dougiteixeira/proxmoxve/blob/main/docs/actions.md#backup-buttons) exist only while this is set.
+- **Entity id scheme** — standard (Home Assistant's device then name) or extended (`pve_<kind>_<id>_<name>_<item>`, with the prefix of your choice); chosen at setup, existing ids never change ([details](https://github.com/dougiteixeira/proxmoxve/blob/main/docs/behaviour.md#entity-ids)).
+- **Optional: cluster HA administration** — a second set of credentials for the [cluster-wide features](https://github.com/dougiteixeira/proxmoxve/blob/main/docs/entities.md#cluster-ha-administration-advanced-optional).
 
-To enable debug for Proxmox VE integration, add following to your `configuration.yaml`:
-```yaml
-logger:
-  default: info
-  logs:
-    custom_components.proxmoxve: debug
-```
-</details>
+## Permissions
 
-## Example screenshot:
-Here are some screenshots of the integration
-
-<details><summary>Node</summary>
-
-![image](https://github.com/dougiteixeira/proxmoxve/assets/31328123/e371b34e-0449-499f-878b-b5baacee8a5e)
-
-</details>
-
-<details><summary>VM (QEMU)</summary>
- 
-![image](https://github.com/dougiteixeira/proxmoxve/assets/31328123/8213b877-8b23-4c4a-917b-04f27bb3a886)
- 
-</details>
-
-<details><summary>Storage</summary>
- 
-![image](https://github.com/dougiteixeira/proxmoxve/assets/31328123/fb290802-95d7-4dcc-8538-d31636a2f6f8)
- 
-</details>
-
-<details><summary>Physical disks</summary>
- 
-![image](https://github.com/dougiteixeira/proxmoxve/assets/31328123/f6174806-0ba8-4f60-ada7-cf5f29a1f629)
- 
-</details>
-
-## Proxmox Permissions
-
-> [!IMPORTANT]  
-> It is necessary to reload the integration after changing user/token permissions in Proxmox.
-
-To be able to obtain each type of integration information, the user used to connect must have the corresponding privilege.
-
-It is not necessary to include all of the permission roles below, this will depend on your use of the integration.
-
-The integration will create a repair for each resource that is exposed in the integration configuration but is not accessible by the user, indicating the path and privilege necessary to access it.
-
-When executing a command, if the user does not have the necessary permission, a repair will be created indicating the path and privilege necessary to execute it.
-
-> [!CAUTION]
-> The permissions suggested in this documentation and in the created repairs are informative, the responsibility for assessing the risks involved in assigning permissions to the user is the sole responsibility of the user.
-
-### Suggestion for creating permission roles for use with integration
-
-Below is a summary of the permissions for each integration feature. I suggest you create the roles below to make it easier to assign only the necessary permissions to the user.
-
-|Purpose of Permission|Access Type|Role (name suggestion)|Privilegies|
-|---|---|---|---|
-|Get data from nodes, VM, CT and storages|Read only|HomeAssistant.Audit|VM.Audit, Sys.Audit and Datastore.Audit|
-|Perform commands on the node (shutdown, restart, start all, shutdown all)|Management permission|HomeAssistant.NodePowerMgmt|Sys.PowerMgmt|
-|Get information about available package updates to display on sensors (integration does not trigger the update)|Management permission|HomeAssistant.Update|Sys.Modify|
-|Perform commands on VM/CT (start, shutdown, restart, suspend, resume and hibernate)|Management permission|HomeAssistant.VMPowerMgmt|VM.PowerMgmt|
-
-### Create Home Assistant Group
-
-Before creating the user, we need to create a group for the user.
-Privileges can be either applied to Groups or Roles.
-
-1. Click `Datacenter`
-2. Open `Permissions` and click `Groups`
-3. Click the `Create` button above all the existing groups
-4. Name the new group (e.g., `HomeAssistant`)
-5. Click `Create`
-
-### Add Group Permissions to all Assets
-
-1. Click `Datacenter`
-2. Click `Permissions`
-3. Open `Add` and click `Group Permission`
-4. Select the path of the resource you want to authorize the user to access. To enable all features select `/`
-5. Select your Home Assistant group (`HomeAssistant`)
-6. Select the role according to the table above (you must add a permission for each role in the table).
-7. Make sure `Propagate` is checked
-
-### Create Home Assistant User
-
-Creating a dedicated user for Home Assistant, limited to only to the access just created is the most secure method. These instructions use the `pve` realm for the user. This allows a connection, but ensures that the user is not authenticated for SSH connections.
-
-1. Click `Datacenter`
-2. Open `Permissions` and click `Users`
-3. Click `Add`
-4. Enter a username (e.g.,` homeassistant`)
-5. Set the realm to "Proxmox VE authentication server"
-6. Enter a secure password (it can be complex as you will only need to copy/paste it into your Home Assistant configuration)
-7. Select the group just created earlier (`HomeAssistant`) to grant access to Proxmox
-8. Ensure `Enabled` is checked and `Expire` is set to "never"
-9. Click `Add`
-
-### Create token for user (recommended)
-
-Creating a dedicated user token for Home Assistant, limited only to the newly created access, is the most recommended method.
-
-1. Click `Datacenter`
-2. Open `Permissions` and click `API Tokens`
-3. Click `Add`
-4. Select the user linked to the token
-5. Enter a name for the token in the `Token ID` field (e.g.,` homeassistant`)
-6. Uncheck the `Privilege Separation` option to unlink user permissions (in this case, unique permissions must be configured for the token)
-7. Select the Never option in the `Expire` field
-8. Ensure `Enabled` is checked and `Expire` is set to "never"
-9. Click `Add`
-10. Copy the secret token value
-
-> [!WARNING]
-> After closing the popup it is not possible to recover this value, if you lose the token value you must create a new token.
-
-> [!TIP]
-> In your Home Assistant configuration, enter the value defined in `Token ID` in the `Token name` field.
-
-## Disabled entities
-
-Some entities are disabled by default (including control buttons), see below how to enable them.
-
- <details><summary>A step by step to enable entities</summary>
-  
-   1) Go to the page for the device you want to enable the button (or sensor).
-
-      ![image](https://github.com/dougiteixeira/proxmoxve/assets/31328123/4e3f9b7d-e935-4fc5-bdd3-3329ef9b90a8)
-   
-   2) Click +x entities not show
-
-      ![image](https://github.com/dougiteixeira/proxmoxve/assets/31328123/0240d2ed-efac-4c59-9def-e721a44dde90)
-   
-   3) Click on the entity you want to enable and click on settings (on the gear icon):
-
-      ![image](https://github.com/dougiteixeira/proxmoxve/assets/31328123/e1bd2fb2-6fb5-4919-88c1-8056b7435f87)
-   
-   4) Click the Enable button at the top of the dialog:
-
-      ![image](https://github.com/dougiteixeira/proxmoxve/assets/31328123/1a8205e4-a779-4a01-922d-5d147e8e5766)
-   
-   5) Wait a while (approximately 30 seconds) for the entity to be enabled. If you don't want to wait, just reload the configuration entry on the integration page.
-
-      ![image](https://github.com/dougiteixeira/proxmoxve/assets/31328123/33edd547-8c55-44eb-b0b9-5036317bf077)
-   
-   For the entity to appear enabled on the device page, it may be necessary to refresh the page.
-   </details>
-
-> [!NOTE]
-> The Wake on LAN button only works if the configured node is in a cluster of two or more nodes. If you want to use WOL on a single Node, use the official `Wake-On-Lan` integration.
+The credentials need `VM.Audit`, `Sys.Audit` and `Datastore.Audit` on what you track to read — plus `VM.GuestAgent.Audit` for a VM's disk usage from inside the guest — and more to act — `VM.PowerMgmt` for a guest's power buttons, `Sys.PowerMgmt` for a node's, `VM.Snapshot`, `VM.Backup`, `Sys.Modify` for package updates. Buttons exist only where the privilege is held, and a repair names what is missing. The step-by-step guide for roles, group, user and token — including the one token setting most setups get wrong — is in [Proxmox permissions](https://github.com/dougiteixeira/proxmoxve/blob/main/docs/permissions.md).
 
 ## Translations
 [![Crowdin](https://badges.crowdin.net/proxmoxve-homeassistant/localized.svg)](https://crowdin.com/project/proxmoxve-homeassistant)

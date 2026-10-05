@@ -1,3 +1,5 @@
+# Copyright (c) 2019-2026
+# SPDX-License-Identifier: MIT
 """Constants for Proxmox VE tests."""
 
 from homeassistant.const import (
@@ -13,6 +15,7 @@ from custom_components.proxmoxve import DOMAIN
 from custom_components.proxmoxve.const import (
     CONF_CONTAINERS,
     CONF_DISKS_ENABLE,
+    CONF_ENTITY_ID_SCHEME,
     CONF_LXC,
     CONF_NODE,
     CONF_NODES,
@@ -34,6 +37,23 @@ USER_INPUT_OK = {
     CONF_QEMU: ["101"],
     CONF_LXC: ["100"],
 }
+# A config entry in the current format (version 7): what the config flow
+# stores today, tracking the node, the VM, the container and one storage.
+CURRENT_ENTRY_DATA = {
+    CONF_HOST: "192.168.10.101",
+    CONF_PORT: 8006,
+    CONF_USERNAME: "root",
+    CONF_TOKEN_NAME: "",
+    CONF_PASSWORD: "secret",
+    CONF_REALM: "pam",
+    CONF_VERIFY_SSL: True,
+    CONF_NODES: ["pve"],
+    CONF_QEMU: ["101"],
+    CONF_LXC: ["100"],
+    CONF_STORAGE: ["storage/pve/local"],
+}
+CURRENT_ENTRY_VERSION = 7
+
 YAML_INPUT_OK = {
     "proxmoxve": {
         CONF_HOST: "192.168.10.101",
@@ -97,6 +117,15 @@ USER_INPUT_SELECTION = {
     CONF_LXC: ["100"],
     CONF_STORAGE: ["storage/pve/local"],
     CONF_DISKS_ENABLE: True,
+    # Required at setup, with no default: the form insists on a choice.
+    CONF_ENTITY_ID_SCHEME: "standard",
+}
+# What the options' selection page takes: the selection and discovery only;
+# everything else moved to the Advanced configuration page.
+OPTIONS_INPUT_SELECTION = {
+    key: value
+    for key, value in USER_INPUT_SELECTION.items()
+    if key in (CONF_NODES, CONF_QEMU, CONF_LXC, CONF_STORAGE)
 }
 USER_INPUT_AUTH = {
     CONF_USERNAME: "root",

@@ -1,3 +1,5 @@
+# Copyright (c) 2019-2026
+# SPDX-License-Identifier: MIT
 """Test the Proxmox VE config flow."""
 
 from unittest.mock import patch
@@ -18,6 +20,15 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from requests.exceptions import ConnectTimeout, SSLError
 
 from custom_components.proxmoxve import DOMAIN
+from custom_components.proxmoxve.const import (
+    CONF_AUTO_DISCOVERY,
+    CONF_DISKS_ENABLE,
+    CONF_ENTITY_ID_PREFIX,
+    CONF_ENTITY_ID_SCHEME,
+    CONF_NODES,
+    CONF_REALM,
+    CONF_UPDATE_INTERVAL,
+)
 
 from .const import (
     MOCK_GET_RESPONSE,
@@ -62,6 +73,41 @@ async def test_flow_ok(hass: HomeAssistant) -> None:
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert "data" in result
         assert result["data"][CONF_HOST] == USER_INPUT_USER_HOST[CONF_HOST]
+
+
+async def test_flow_accepts_a_realm_outside_the_pick_list(
+    hass: HomeAssistant,
+) -> None:
+    """
+    Test an LDAP or AD realm can still be typed in.
+
+    The realm field offers pam and pve as a pick-list; anything else has to
+    stay possible, and has to reach the entry as typed.
+    """
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+
+    with (
+        patch("proxmoxer.ProxmoxResource.get", return_value=MOCK_GET_RESPONSE),
+        patch(
+            "proxmoxer.backends.https.ProxmoxHTTPAuth._get_new_tokens",
+            return_value=None,
+        ),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={**USER_INPUT_USER_HOST, CONF_REALM: "ldap"},
+        )
+        assert result["step_id"] == "expose"
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input=USER_INPUT_SELECTION,
+        )
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_REALM] == "ldap"
 
 
 async def test_flow_port_small(hass: HomeAssistant) -> None:
@@ -180,3 +226,78 @@ async def test_flow_already_configured(hass: HomeAssistant) -> None:
 
         assert result["type"] == FlowResultType.ABORT
         assert result["reason"] == "already_configured"
+
+
+async def test_an_empty_selection_with_discovery_on_is_accepted(
+    hass: HomeAssistant,
+) -> None:
+    """
+    Test picking nothing and turning on discovery creates the entry.
+
+    The node field was marked required in the form, so the form refused
+    exactly the setup the switch is for - track everything, pick nothing.
+    """
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+
+    with (
+        patch("proxmoxer.ProxmoxResource.get", return_value=MOCK_GET_RESPONSE),
+        patch(
+            "proxmoxer.backends.https.ProxmoxHTTPAuth._get_new_tokens",
+            return_value=None,
+        ),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input=USER_INPUT_USER_HOST
+        )
+        assert result["step_id"] == "expose"
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CONF_AUTO_DISCOVERY: True, CONF_ENTITY_ID_SCHEME: "extended"},
+        )
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_NODES] == []
+    assert result["options"][CONF_AUTO_DISCOVERY] is True
+    assert result["options"][CONF_ENTITY_ID_SCHEME] == "extended"
+    assert result["options"][CONF_ENTITY_ID_PREFIX] == "pve"
+    # What the advanced options offer later starts at its default.
+    assert result["options"][CONF_UPDATE_INTERVAL] == 60
+
+
+async def test_an_empty_selection_without_discovery_asks_for_a_node(
+    hass: HomeAssistant,
+) -> None:
+    """Test nothing picked and discovery off is an error at the node field."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+
+    with (
+        patch("proxmoxer.ProxmoxResource.get", return_value=MOCK_GET_RESPONSE),
+        patch(
+            "proxmoxer.backends.https.ProxmoxHTTPAuth._get_new_tokens",
+            return_value=None,
+        ),
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input=USER_INPUT_USER_HOST
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CONF_DISKS_ENABLE: False, CONF_ENTITY_ID_SCHEME: "standard"},
+        )
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "expose"
+        assert result["errors"] == {CONF_NODES: "nodes_required"}
+
+        # Picking a node on the re-shown form goes through.
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input=USER_INPUT_SELECTION
+        )
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_NODES] == ["pve"]
